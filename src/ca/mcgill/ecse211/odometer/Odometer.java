@@ -38,7 +38,6 @@ public class Odometer extends OdometerData implements Runnable {
   
   private double theta;
   
-  private double[] position = {0,0,0};
 
 
   private static final long ODOMETER_PERIOD = 25; // odometer update period in ms
