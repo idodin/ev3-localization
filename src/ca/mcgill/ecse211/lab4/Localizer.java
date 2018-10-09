@@ -61,17 +61,14 @@ public class Localizer {
 
 		// Keep rotating until falling edge (back wall) is found
 		while (true) {
-			System.out.println("Finding alpha: " + dist);
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
 			if (dist <= d + k && lastdist <= d + k && !a1set) {
-				System.out.println("Alpha1 found Distance: " + dist + " LastDistance: " + lastdist);
 				Sound.beep();
 				a1 = odo.getXYT()[2];
 				a1set = true;
 			}
 			if (dist <= d - k && lastdist <= d - k && a1set && !a2set) {
-				System.out.println("Alpha2 found Distance: " + dist + "LastDistance: " + lastdist);
 				Sound.beep();
 				a2 = odo.getXYT()[2];
 				a2set = true;
@@ -89,14 +86,12 @@ public class Localizer {
 		turnBy(1000, false);
 
 		while (dist < d + k + rfalling || dist == 0) {
-			// System.out.println("repassing alpha");
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
 		}
 
 		// Keep rotating until falling edge (right wall) is found.
 		while (true) {
-			System.out.println("Finding beta: " + dist);
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
 			if (dist <= d + k && lastdist <= d + k && !b1set) {
@@ -105,13 +100,11 @@ public class Localizer {
 				b1set = true;
 			}
 			if (dist <= d - k && lastdist <= d + k && b1set && !b2set) {
-				System.out.println("Beta1 found Distance: " + dist + "LastDistance: " + lastdist);
 				Sound.beep();
 				b2 = odo.getXYT()[2];
 				b2set = true;
 			}
 			if (b1set && b2set) {
-				System.out.println("Beta2 found Distance: " + dist + "LastDistance: " + lastdist);
 				b = (b1 + b2) / 2;
 				break;
 			}
@@ -124,10 +117,6 @@ public class Localizer {
 
 		// Correct theta and orientate to 0.
 		if (a < b) {
-			// System.out.println("a<b");
-			// System.out.println("a=" + a);
-			// System.out.println("b=" + b);
-			// System.out.println("correction = " + (45 - (a+b)/2));
 			correction = 45 - (a + b) / 2;
 
 			// turnTo(180-(correction+odo.getXYT()[2]));
@@ -136,8 +125,6 @@ public class Localizer {
 
 		}
 		if (a >= b) {
-			// System.out.println("a>b");
-			// System.out.println(225 - (a+b)/2);
 			correction = 225 - (a + b) / 2;
 			odo.setTheta(180 + correction + odo.getXYT()[2]);
 			turnTo(0);
@@ -169,14 +156,12 @@ public class Localizer {
 		// Sample from Ultrasonic Sensor
 		usAverage.fetchSample(usData, 0);
 		dist = (int) (usData[0] * 100.00);
-		// System.out.println("Distance initial: " + dist);
 
 		// If we're above the distance threshold, rotate until we are no longer
 		// above it
 		while (dist > d - k - rrising || dist == 0) {
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
-			System.out.println(dist);
 		}
 
 		// Keep rotating until falling edge (back wall) is found
@@ -206,7 +191,6 @@ public class Localizer {
 		turnBy(1000, false);
 
 		while (dist > d - k - rrising || dist == 0) {
-			// System.out.println("repassing alpha");
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
 		}
@@ -238,10 +222,6 @@ public class Localizer {
 
 		// Correct theta and orientate to 0.
 		if (a < b) {
-			// System.out.println("a<b");
-			// System.out.println("a=" + a);
-			// System.out.println("b=" + b);
-			// System.out.println("correction = " + (45 - (a+b)/2));
 			correction = 45 - (a + b) / 2;
 
 			// turnTo(180-(correction+odo.getXYT()[2]));
@@ -313,7 +293,8 @@ public class Localizer {
 
 	public static void localizeColor() throws OdometerExceptions {
 		boolean ySet, xSet;
-		ySet = xSet = false;
+		ySet = false; 
+		xSet = false;
 
 		try {
 			odo = Odometer.getOdometer();
@@ -329,7 +310,7 @@ public class Localizer {
 
 		for (EV3LargeRegulatedMotor motor : new EV3LargeRegulatedMotor[] { leftMotor, rightMotor }) {
 			motor.setAcceleration(FORWARD_ACCELERATION);
-			motor.setSpeed(FORWARD_SPEED);
+			motor.setSpeed(FORWARD_SPEED/2);
 		}
 
 		leftMotor.forward();
@@ -337,26 +318,46 @@ public class Localizer {
 
 		while (true) {
 
+			color.fetchSample(colorBuffer, 0);
+			currentColor = colorBuffer[0];
+			
 			if (currentColor - lastColor > 5 && !ySet) {
+				Sound.beep();
 				odo.setY(0);
 				ySet = true;
 				leftMotor.stop(true);
 				rightMotor.stop(false);
+				leftMotor.rotate(-1 * convertDistance(Lab4.getWheelRad(), 5), true);
+				rightMotor.rotate(-1 * convertDistance(Lab4.getWheelRad(), 5), false);
 				turnTo(90);
 				leftMotor.forward();
 				rightMotor.forward();
+				lastColor = currentColor;
+				continue;
 			}
 
+			
+			
 			if (currentColor - lastColor > 5 && ySet && !xSet) {
+				Sound.beep();
 				odo.setX(0);
 				xSet = true;
 				break;
 			}
+			
+			lastColor = currentColor;
 
 		}
 
 		leftMotor.stop(true);
 		rightMotor.stop(false);
+		
+		turnTo(0);
+		
+		leftMotor.rotate(convertDistance(Lab4.getWheelRad(), 5), true);
+		rightMotor.rotate(convertDistance(Lab4.getWheelRad(), 5), false);
+		
+		
 
 	}
 

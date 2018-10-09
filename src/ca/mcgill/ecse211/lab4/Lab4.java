@@ -32,7 +32,7 @@ public class Lab4 {
 	private static SampleProvider usAverage = new MeanFilter(usDistance, 5);
 	private static float[] usData = new float[usAverage.sampleSize()];
 	
-	private static SampleProvider color = new EV3ColorSensor(colorPort).getMode("RGB");
+	private static SampleProvider color = new EV3ColorSensor(colorPort).getMode("ColorID");
 	private static float[] colorBuffer = new float[color.sampleSize()];
 	
 	
@@ -88,6 +88,7 @@ public class Lab4 {
 						buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
 					} while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
 					if(buttonChoice == Button.ID_RIGHT) {
+						lcd.clear();
 						try{
 							Localizer.localizeColor();
 						} catch (OdometerExceptions e) {
@@ -121,6 +122,7 @@ public class Lab4 {
 						buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
 					} while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
 					if(buttonChoice == Button.ID_RIGHT) {
+						lcd.clear();
 						try{
 							Localizer.localizeColor();
 						} catch (OdometerExceptions e) {
