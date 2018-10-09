@@ -8,8 +8,10 @@ import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.TextLCD;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.Port;
+import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.SampleProvider;
+import lejos.robotics.filter.MeanFilter;
 
 public class Lab4 {
 
@@ -22,12 +24,18 @@ public class Lab4 {
 	private static final double WHEEL_RAD = 2.09;
 	private static final double TRACK = 12.70;
 	private static final Port usPort = LocalEV3.get().getPort("S1");
+	private static final Port colorPort = LocalEV3.get().getPort("S4");
 	private static int mapSelection;
 
 	// Sensor Objects
 	private static SampleProvider usDistance = new EV3UltrasonicSensor(usPort).getMode("Distance");
-	private static float[] usData = new float[usDistance.sampleSize()];
-
+	private static SampleProvider usAverage = new MeanFilter(usDistance, 5);
+	private static float[] usData = new float[usAverage.sampleSize()];
+	
+	private static SampleProvider color = new EV3ColorSensor(colorPort).getMode("RGB");
+	private static float[] colorBuffer = new float[color.sampleSize()];
+	
+	
 	public static void main(String[] args) throws OdometerExceptions {
 
 		int buttonChoice;
@@ -63,12 +71,66 @@ public class Lab4 {
 					try {
 						Localizer.localizeFE();
 					} catch (OdometerExceptions e) {
-						// do nothing
+						e.printStackTrace();
+					}
+					int buttonChoice;
+					do {
+						// clear the display
+						lcd.clear();
+
+						// ask the user whether the motors should drive in a square or float
+						lcd.drawString("<        | Right >     ", 0, 0);
+						lcd.drawString("         |             ", 0, 1);
+						lcd.drawString("         | Color       ", 0, 2);
+						lcd.drawString("         | Localization", 0, 3);
+						lcd.drawString("         |             ", 0, 4);
+
+						buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+					} while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+					if(buttonChoice == Button.ID_RIGHT) {
+						try{
+							Localizer.localizeColor();
+						} catch (OdometerExceptions e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}).start();
 		}
-		
+		if (buttonChoice == Button.ID_LEFT) {
+			// spawn a new Thread to avoid SquareDriver.drive() from blocking
+			(new Thread() {
+				public void run() {
+					try {
+						Localizer.localizeRE();
+					} catch (OdometerExceptions e) {
+						e.printStackTrace();
+					}
+					int buttonChoice;
+					do {
+						// clear the display
+						lcd.clear();
+
+						// ask the user whether the motors should drive in a square or float
+						lcd.drawString("<        | Right >     ", 0, 0);
+						lcd.drawString("         |             ", 0, 1);
+						lcd.drawString("         | Color       ", 0, 2);
+						lcd.drawString("         | Localization", 0, 3);
+						lcd.drawString("         |             ", 0, 4);
+
+						buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+					} while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+					if(buttonChoice == Button.ID_RIGHT) {
+						try{
+							Localizer.localizeColor();
+						} catch (OdometerExceptions e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}).start();
+		}
+
 		while (Button.waitForAnyPress() != Button.ID_ESCAPE)
 			;
 		System.exit(0);
@@ -92,5 +154,17 @@ public class Lab4 {
 
 	public static int getMapSelection() {
 		return mapSelection;
+	}
+	
+	public static SampleProvider getUSAverage() {
+		return usAverage;
+	}
+
+	public static SampleProvider getColor() {
+		return color;
+	}
+
+	public static float[] getColorBuffer() {
+		return colorBuffer;
 	}
 }
