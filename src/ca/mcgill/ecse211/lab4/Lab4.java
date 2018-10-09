@@ -56,14 +56,19 @@ public class Lab4 {
 		odoThread.start();
 		Thread odoDisplayThread = new Thread(odometryDisplay);
 		odoDisplayThread.start();
-
-		// spawn a new Thread to avoid SquareDriver.drive() from blocking
-		(new Thread() {
-			public void run() {
-				// Localize
-			}
-		}).start();
-
+		if (buttonChoice == Button.ID_RIGHT) {
+			// spawn a new Thread to avoid SquareDriver.drive() from blocking
+			(new Thread() {
+				public void run() {
+					try {
+						Localizer.localizeFE();
+					} catch (OdometerExceptions e) {
+						// do nothing
+					}
+				}
+			}).start();
+		}
+		
 		while (Button.waitForAnyPress() != Button.ID_ESCAPE)
 			;
 		System.exit(0);
