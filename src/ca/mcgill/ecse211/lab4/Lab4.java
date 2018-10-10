@@ -13,6 +13,14 @@ import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.SampleProvider;
 import lejos.robotics.filter.MeanFilter;
 
+/**
+ * This class is the boot class for the Localization Demo.
+ * It initializes and runs threads for odometry, localization and LCD Display. 
+ * 
+ * @author Imad Dodin
+ * @author An Khang Chau
+ *
+ */
 public class Lab4 {
 
 	// Motor Objects, and Robot related parameters
@@ -25,7 +33,6 @@ public class Lab4 {
 	private static final double TRACK = 12.70;
 	private static final Port usPort = LocalEV3.get().getPort("S1");
 	private static final Port colorPort = LocalEV3.get().getPort("S4");
-	private static int mapSelection;
 
 	// Sensor Objects
 	private static SampleProvider usDistance = new EV3UltrasonicSensor(usPort).getMode("Distance");
@@ -39,7 +46,6 @@ public class Lab4 {
 	public static void main(String[] args) throws OdometerExceptions {
 
 		int buttonChoice;
-		mapSelection = 2;
 
 		// Odometer related objects
 		Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD);
@@ -138,34 +144,58 @@ public class Lab4 {
 		System.exit(0);
 	}
 
+	/**
+	 * Return the Wheel Radius of the Robot
+	 * @return
+	 */
 	public static double getWheelRad() {
 		return WHEEL_RAD;
 	}
 
+	/**
+	 * Return the Ultrasonic Sample Provider
+	 * @return
+	 */
 	public static SampleProvider getUSDistance() {
 		return usDistance;
 	}
 
+	/**
+	 * Return the Ultrasonic Distance Buffer
+	 * @return
+	 */
 	public static float[] getUSData() {
 		return usData;
 	}
 
+	/**
+	 * Return the Track (Wheelbase) of the Robot
+	 * @return
+	 */
 	public static double getTrack() {
 		return TRACK;
 	}
 
-	public static int getMapSelection() {
-		return mapSelection;
-	}
-	
+	/**
+	 * Return the Ultrasonic Average Sample Provider
+	 * @return
+	 */
 	public static SampleProvider getUSAverage() {
 		return usAverage;
 	}
 
+	/**
+	 * Return the Color Sensor Sample Provider
+	 * @return
+	 */
 	public static SampleProvider getColor() {
 		return color;
 	}
 
+	/**
+	 * Return the Color Sensor Data Buffer
+	 * @return
+	 */
 	public static float[] getColorBuffer() {
 		return colorBuffer;
 	}

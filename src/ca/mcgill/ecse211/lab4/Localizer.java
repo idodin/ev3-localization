@@ -6,13 +6,20 @@ import lejos.hardware.Sound;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.robotics.SampleProvider;
 
+/**
+ * This class contains methods for Rising Edge and Falling Edge Ultrasonic Localization as well as 
+ * Color Sensor Localization.
+ * 
+ * @author Imad Dodin
+ * @author An Khang Chau
+ *
+ */
 public class Localizer {
 
-	private static final int FORWARD_SPEED = 200;
+	private static final int FORWARD_SPEED = 100;
 	private static final int TURN_SPEED = 60;
 	private static final int FORWARD_ACCELERATION = 2000;
 	private static final int TURN_ACCELERATION = 2000;
-	private static final double TILE_SIZE = 30.48;
 
 	private static final EV3LargeRegulatedMotor leftMotor = Lab4.leftMotor;
 	private static final EV3LargeRegulatedMotor rightMotor = Lab4.rightMotor;
@@ -26,10 +33,13 @@ public class Localizer {
 	private static int d = 33;
 	private static int k = 2;
 	private static int rrising = 20;
-	private static int rfalling = 20;
+	private static int rfalling = 30;
 
+	/**
+	 * Run Falling Edge Localization with the Ultrasonic Sesnor.
+	 * @throws OdometerExceptions
+	 */
 	public static void localizeFE() throws OdometerExceptions {
-
 		// Initialize variables
 		double a1, a2, b1, b2, a, b, correction;
 		a1 = a2 = b1 = b2 = a = b = 0;
@@ -63,12 +73,12 @@ public class Localizer {
 		while (true) {
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
-			if (dist <= d + k && lastdist <= d + k && !a1set) {
+			if (dist > 3 && dist <= d + k && lastdist <= d + k && !a1set) {
 				Sound.beep();
 				a1 = odo.getXYT()[2];
 				a1set = true;
 			}
-			if (dist <= d - k && lastdist <= d - k && a1set && !a2set) {
+			if (dist > 3 && dist <= d - k && lastdist <= d - k && a1set && !a2set) {
 				Sound.beep();
 				a2 = odo.getXYT()[2];
 				a2set = true;
@@ -80,9 +90,7 @@ public class Localizer {
 			lastdist = dist;
 		}
 
-		// Stop rotating and rotate in opposite direction
-		leftMotor.stop(true);
-		rightMotor.stop(false);
+		stopMotors();
 		turnBy(1000, false);
 
 		while (dist < d + k + rfalling || dist == 0) {
@@ -94,12 +102,12 @@ public class Localizer {
 		while (true) {
 			usAverage.fetchSample(usData, 0);
 			dist = (int) (usData[0] * 100.00);
-			if (dist <= d + k && lastdist <= d + k && !b1set) {
+			if (dist > 3 && dist <= d + k && lastdist <= d + k && !b1set) {
 				Sound.beep();
 				b1 = odo.getXYT()[2];
 				b1set = true;
 			}
-			if (dist <= d - k && lastdist <= d + k && b1set && !b2set) {
+			if (dist > 3 && dist <= d - k && lastdist <= d + k && b1set && !b2set) {
 				Sound.beep();
 				b2 = odo.getXYT()[2];
 				b2set = true;
@@ -111,9 +119,7 @@ public class Localizer {
 			lastdist = dist;
 		}
 
-		// Stop rotating.
-		leftMotor.stop(true);
-		rightMotor.stop(false);
+		stopMotors();
 
 		// Correct theta and orientate to 0.
 		if (a < b) {
@@ -133,6 +139,10 @@ public class Localizer {
 
 	}
 
+	/**
+	 * Run Rising Edge Localization with the EV3UltrasonicSensor.
+	 * @throws OdometerExceptions
+	 */
 	public static void localizeRE() throws OdometerExceptions {
 
 		// Initialize variables
@@ -185,9 +195,7 @@ public class Localizer {
 			lastdist = dist;
 		}
 
-		// Stop rotating and rotate in opposite direction
-		leftMotor.stop(true);
-		rightMotor.stop(false);
+		stopMotors();
 		turnBy(1000, false);
 
 		while (dist > d - k - rrising || dist == 0) {
@@ -216,9 +224,7 @@ public class Localizer {
 			lastdist = dist;
 		}
 
-		// Stop rotating.
-		leftMotor.stop(true);
-		rightMotor.stop(false);
+		stopMotors();
 
 		// Correct theta and orientate to 0.
 		if (a < b) {
@@ -237,63 +243,13 @@ public class Localizer {
 
 	}
 
-	public static void travelTo(double x, double y) {
-		try {
-			odo = Odometer.getOdometer();
-		} catch (OdometerExceptions e) {
-			e.printStackTrace();
-			return;
-		}
-
-		// reset the motors
-		for (EV3LargeRegulatedMotor motor : new EV3LargeRegulatedMotor[] { leftMotor, rightMotor }) {
-			motor.stop();
-			motor.setAcceleration(3000);
-		}
-
-		currentPosition = odo.getXYT();
-
-		double deltaX = x * TILE_SIZE - currentPosition[0];
-		double deltaY = y * TILE_SIZE - currentPosition[1];
-		double distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-
-		if (deltaX == 0 && deltaY != 0) {
-			turnTo(deltaY < 0 ? 180 : 0);
-		} else {
-			double baseAngle = deltaX > 0 ? 90 : 270;
-			double adjustAngle;
-			if ((deltaY > 0 && deltaX > 0) || (deltaY < 0 && deltaX < 0)) {
-				adjustAngle = -1 * Math.toDegrees(Math.atan(deltaY / deltaX));
-			} else {
-				adjustAngle = Math.toDegrees(Math.atan(Math.abs(deltaY) / Math.abs(deltaX)));
-			}
-
-			turnTo(baseAngle + adjustAngle);
-		}
-		leftMotor.setSpeed(FORWARD_SPEED);
-		rightMotor.setSpeed(FORWARD_SPEED);
-		leftMotor.forward();
-		rightMotor.forward();
-
-		while (true) {
-			currentPosition = odo.getXYT();
-
-			deltaX = x * TILE_SIZE - currentPosition[0];
-			deltaY = y * TILE_SIZE - currentPosition[1];
-			distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-			
-			if(distance < 1.0) {
-				leftMotor.stop(true);
-				rightMotor.stop(false);
-				turnTo(0);
-			}
-		}
-
-	}
-
+	/**
+	 * Localize with line detection using the EV3ColorSensor
+	 * @throws OdometerExceptions
+	 */
 	public static void localizeColor() throws OdometerExceptions {
 		boolean ySet, xSet;
-		ySet = false; 
+		ySet = false;
 		xSet = false;
 
 		try {
@@ -308,10 +264,7 @@ public class Localizer {
 		color.fetchSample(colorBuffer, 0);
 		currentColor = colorBuffer[0];
 
-		for (EV3LargeRegulatedMotor motor : new EV3LargeRegulatedMotor[] { leftMotor, rightMotor }) {
-			motor.setAcceleration(FORWARD_ACCELERATION);
-			motor.setSpeed(FORWARD_SPEED/2);
-		}
+		setSpeedAccel(FORWARD_SPEED, FORWARD_ACCELERATION);
 
 		leftMotor.forward();
 		rightMotor.forward();
@@ -320,52 +273,70 @@ public class Localizer {
 
 			color.fetchSample(colorBuffer, 0);
 			currentColor = colorBuffer[0];
-			
+
 			if (currentColor - lastColor > 5 && !ySet) {
 				Sound.beep();
 				odo.setY(0);
 				ySet = true;
-				leftMotor.stop(true);
-				rightMotor.stop(false);
+				stopMotors();
 				leftMotor.rotate(-1 * convertDistance(Lab4.getWheelRad(), 5), true);
 				rightMotor.rotate(-1 * convertDistance(Lab4.getWheelRad(), 5), false);
 				turnTo(90);
+				setSpeedAccel(FORWARD_SPEED, FORWARD_ACCELERATION);
 				leftMotor.forward();
 				rightMotor.forward();
 				lastColor = currentColor;
 				continue;
 			}
 
-			
-			
 			if (currentColor - lastColor > 5 && ySet && !xSet) {
 				Sound.beep();
 				odo.setX(0);
 				xSet = true;
 				break;
 			}
-			
+
 			lastColor = currentColor;
 
 		}
 
-		leftMotor.stop(true);
-		rightMotor.stop(false);
-		
+		stopMotors();
+
 		turnTo(0);
-		
+		setSpeedAccel(FORWARD_SPEED, FORWARD_ACCELERATION);
+
 		leftMotor.rotate(convertDistance(Lab4.getWheelRad(), 5), true);
 		rightMotor.rotate(convertDistance(Lab4.getWheelRad(), 5), false);
-		
-		
 
 	}
 
-	public static void turnBy(double theta, boolean clockwise) {
+	/**
+	 * Stop both motors at the same time.
+	 */
+	private static void stopMotors() {
+		leftMotor.stop(true);
+		rightMotor.stop(false);
+	}
+
+	/**
+	 * Set Speed and Acceleration for both motors.
+	 * @param speed
+	 * @param accel
+	 */
+	private static void setSpeedAccel(int speed, int accel) {
 		for (EV3LargeRegulatedMotor motor : new EV3LargeRegulatedMotor[] { leftMotor, rightMotor }) {
-			motor.setAcceleration(TURN_ACCELERATION);
-			motor.setSpeed(TURN_SPEED);
+			motor.setAcceleration(accel);
+			motor.setSpeed(speed);
 		}
+	}
+
+	/**
+	 * Make the Robot turn by the specified amount in the specified direction.
+	 * @param theta
+	 * @param clockwise - true if clockwise, false if anticlockwise
+	 */
+	public static void turnBy(double theta, boolean clockwise) {
+		setSpeedAccel(TURN_SPEED, TURN_ACCELERATION);
 
 		leftMotor.rotate((clockwise ? 1 : -1) * convertAngle(Lab4.getWheelRad(), Lab4.getTrack(), theta), true);
 		rightMotor.rotate((clockwise ? -1 : 1) * convertAngle(Lab4.getWheelRad(), Lab4.getTrack(), theta), true);
